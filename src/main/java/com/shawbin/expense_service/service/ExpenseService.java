@@ -1,6 +1,9 @@
 package com.shawbin.expense_service.service;
 
+import com.shawbin.expense_service.dto.ExpenseRequest;
+import com.shawbin.expense_service.dto.ExpenseResponse;
 import com.shawbin.expense_service.entity.Expense;
+import com.shawbin.expense_service.mapper.ExpenseMapper;
 import com.shawbin.expense_service.repository.ExpenseRepository;
 import org.springframework.stereotype.Service;
 
@@ -16,26 +19,29 @@ public class ExpenseService {
         this.expenseRepository = expenseRepository;
     }
 
-    public Expense createExpense(Expense expense){
-        return expenseRepository.save(expense);
+    public ExpenseResponse createExpense(ExpenseRequest expenseRequest){
+        Expense expenseEntity = ExpenseMapper.toEntity(expenseRequest);
+        Expense savedExpense = expenseRepository.save(expenseEntity);
+        return ExpenseMapper.toResponse(savedExpense);
     }
 
-    public List<Expense> getAllExpenses(){
-        return expenseRepository.findAll();
+    public List<ExpenseResponse> getAllExpenses(){
+        return expenseRepository.findAll().
+                stream().map(ExpenseMapper::toResponse).toList();
     }
 
-    public Optional<Expense> getExpenseById(Long id){
-        return expenseRepository.findById(id);
+    public Optional<ExpenseResponse> getExpenseById(Long id){
+        return expenseRepository.findById(id).map(ExpenseMapper::toResponse);
     }
 
-    public Optional<Expense> updateExpense(Long id,Expense updatedExpense){
-        return expenseRepository.findById(id).map(existigExpense -> {
-            existigExpense.setTitle(updatedExpense.getTitle());
-            existigExpense.setAmount(updatedExpense.getAmount());
-            existigExpense.setCategory(updatedExpense.getCategory());
-            existigExpense.setExpenseDate(updatedExpense.getExpenseDate());
-            return expenseRepository.save(existigExpense);
-        });
+    public Optional<ExpenseResponse> updateExpense(Long id,ExpenseRequest expenseRequest){
+
+        return expenseRepository.findById(id)
+                .map(existigExpense -> {
+                    ExpenseMapper.updateEntity(existigExpense,expenseRequest);
+                    Expense updatedExpense= expenseRepository.save(existigExpense);
+                    return ExpenseMapper.toResponse(updatedExpense);
+                });
     }
 
     public Boolean deleteExpense(Long id){
