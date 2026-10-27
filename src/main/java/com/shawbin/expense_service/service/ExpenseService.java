@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +53,16 @@ public class ExpenseService {
         }
         expenseRepository.deleteById(id);
         return true;
+    }
+
+    public Page<ExpenseResponse> filterExpensesByCategory(Pageable pageable,String category){
+        return expenseRepository.findByCategoryIgnoreCase(pageable,category)
+                .map(ExpenseMapper::toResponse);
+    }
+
+    public Page<ExpenseResponse> filterByStartDateAndEndDate(Pageable pageable, LocalDate startDate,LocalDate endDate){
+        return expenseRepository.findByExpenseDateBetween(pageable,startDate,endDate)
+                .map(ExpenseMapper::toResponse);
     }
 
 }

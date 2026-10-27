@@ -1,5 +1,7 @@
 package com.shawbin.expense_service.dto;
 
+import jakarta.persistence.Column;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -18,6 +20,8 @@ public class ExpenseRequest {
     @NotBlank(message = "Category is Required")
     private String category;
 
+    @DecimalMin(value = "0.01", message = "Amount must be greater than zero")
+    @Column(nullable = false, precision = 12, scale = 2)
     @NotNull(message = "Amount is Required")
     private BigDecimal amount;
 
