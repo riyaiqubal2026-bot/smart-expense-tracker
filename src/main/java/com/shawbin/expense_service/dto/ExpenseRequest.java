@@ -19,7 +19,7 @@ public class ExpenseRequest {
     private String category;
 
     @NotNull(message = "Amount is Required")
-    private BigDecimal Amount;
+    private BigDecimal amount;
 
     @NotNull(message = "Expense Date is Required")
     private LocalDate expenseDate;

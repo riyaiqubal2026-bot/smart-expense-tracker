@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -15,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -93,18 +97,18 @@ class ExpenseControllerTest {
                 new BigDecimal("45.50"),
                 LocalDate.of(2026, 10, 26)
         );
-
-        when(expenseService.getAllExpenses())
-                .thenReturn(java.util.List.of(expense));
+        Pageable pageable = PageRequest.of(0,10);
+        when(expenseService.getAllExpenses(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(expense),pageable,0));
 
         mockMvc.perform(
                         org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                                 .get("/api/expenses/fetchAllExpenses"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].title").value("Groceries"))
-                .andExpect(jsonPath("$[0].category").value("Food"))
-                .andExpect(jsonPath("$[0].amount").value(45.50));
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Groceries"))
+                .andExpect(jsonPath("$.content[0].category").value("Food"))
+                .andExpect(jsonPath("$.content[0].amount").value(45.50));
     }
 
 

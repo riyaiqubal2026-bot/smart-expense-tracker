@@ -5,6 +5,8 @@ import com.shawbin.expense_service.dto.ExpenseResponse;
 import com.shawbin.expense_service.entity.Expense;
 import com.shawbin.expense_service.mapper.ExpenseMapper;
 import com.shawbin.expense_service.repository.ExpenseRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,9 +27,9 @@ public class ExpenseService {
         return ExpenseMapper.toResponse(savedExpense);
     }
 
-    public List<ExpenseResponse> getAllExpenses(){
-        return expenseRepository.findAll().
-                stream().map(ExpenseMapper::toResponse).toList();
+    public Page<ExpenseResponse> getAllExpenses(Pageable pageable){
+        return expenseRepository.findAll(pageable).
+                map(ExpenseMapper::toResponse);
     }
 
     public Optional<ExpenseResponse> getExpenseById(Long id){

@@ -4,6 +4,9 @@ import com.shawbin.expense_service.dto.ExpenseRequest;
 import com.shawbin.expense_service.dto.ExpenseResponse;
 import com.shawbin.expense_service.service.ExpenseService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,8 +29,8 @@ public class ExpenseController {
     }
 
     @GetMapping("/fetchAllExpenses")
-    public List<ExpenseResponse> getAllExpenses(){
-        return expenseService.getAllExpenses();
+    public Page<ExpenseResponse> getAllExpenses(@PageableDefault(size = 10)Pageable pageable){
+        return expenseService.getAllExpenses(pageable);
     }
 
     @GetMapping("/fetchExpense/{id}")

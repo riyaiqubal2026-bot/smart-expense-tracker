@@ -10,6 +10,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,15 +69,19 @@ public class ExpenseServiceTest {
 
     @Test
     public void fetchAllExpenses_shouldReturnAllExpenses(){
-        doReturn(List.of(expense))
-                .when(expenseRepository)
-                .findAll();
+        Pageable pageable = PageRequest.of(0,10);
+        Page<Expense> expensePage =
+                new PageImpl<>(List.of(expense), pageable, List.of(expense).size());
 
-        List<ExpenseResponse> result=expenseService.getAllExpenses();
+        when(expenseRepository.findAll(any(Pageable.class)))
+                .thenReturn(expensePage);
+
+
+        Page<ExpenseResponse> result=expenseService.getAllExpenses(pageable);
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("Groceries", result.get(0).getTitle());
-        verify(expenseRepository).findAll();
+        assertEquals(1, result.getContent().size());
+        assertEquals("Groceries", result.getContent().get(0).getTitle());
+        verify(expenseRepository).findAll(pageable);
     }
 
     @Test
