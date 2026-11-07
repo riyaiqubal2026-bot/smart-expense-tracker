@@ -6,7 +6,7 @@ import com.shawbin.expense_service.entity.Expense;
 
 public class ExpenseMapper {
 
-    public static  Expense toEntity(ExpenseRequest request){
+    public static Expense toEntity(ExpenseRequest request) {
         Expense expenseEntity = new Expense();
         expenseEntity.setTitle(request.getTitle());
         expenseEntity.setAmount(request.getAmount());
@@ -19,10 +19,12 @@ public class ExpenseMapper {
     public static ExpenseResponse toResponse(Expense expenseEntity){
         return new ExpenseResponse(
                 expenseEntity.getId(),
+                expenseEntity.getUserId(),
                 expenseEntity.getTitle(),
                 expenseEntity.getCategory(),
                 expenseEntity.getAmount(),
                 expenseEntity.getExpenseDate()
+
         );
     }
     public static void updateEntity(

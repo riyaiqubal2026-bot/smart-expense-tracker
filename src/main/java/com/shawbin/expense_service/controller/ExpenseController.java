@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,6 +22,7 @@ import java.time.LocalDate;
         name ="Expense Management",
         description = "APIs for creating, retrieving, updating and deleting expenses"
 )
+@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/expenses")
 public class ExpenseController {
@@ -28,6 +30,12 @@ public class ExpenseController {
 
     public ExpenseController(ExpenseService expenseService){
         this.expenseService=expenseService;
+    }
+    private Long getLoggedInUserId() {
+        return (Long) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
     }
 
 
@@ -43,8 +51,12 @@ public class ExpenseController {
     })
     @PostMapping("/saveExpense")
     @ResponseStatus(HttpStatus.CREATED)
-    public ExpenseResponse createExpense(@Valid @RequestBody ExpenseRequest expenseRequest){
-        return expenseService.createExpense(expenseRequest);
+    public ExpenseResponse createExpense(
+            @Valid @RequestBody ExpenseRequest expenseRequest) {
+
+        Long userId = getLoggedInUserId();
+
+        return expenseService.createExpense(expenseRequest, userId);
     }
 
 
@@ -58,8 +70,12 @@ public class ExpenseController {
     }
     )
     @GetMapping("/fetchAllExpenses")
-    public Page<ExpenseResponse> getAllExpenses(@PageableDefault(size = 10)Pageable pageable){
-        return expenseService.getAllExpenses(pageable);
+    public Page<ExpenseResponse> getAllExpenses(
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        Long userId = getLoggedInUserId();
+
+        return expenseService.getAllExpenses(userId, pageable);
     }
 
 
@@ -73,9 +89,13 @@ public class ExpenseController {
             @ApiResponse(responseCode = "404", description = "Expense not found")
     })
     @GetMapping("/fetchExpense/{id}")
-    public ExpenseResponse getExpenseById(@PathVariable Long id){
-        return expenseService.getExpenseById(id).orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND, "Expense not found"));
+    public ExpenseResponse getExpenseById(@PathVariable Long id) {
+
+        Long userId = getLoggedInUserId();
+
+        return expenseService.getExpenseById(id, userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Expense not found"));
     }
 
 
@@ -92,10 +112,15 @@ public class ExpenseController {
     }
     )
     @PutMapping("/updateExpense/{id}")
-    public ExpenseResponse updateExpense(@PathVariable Long id ,@Valid @RequestBody ExpenseRequest expenseRequest){
+    public ExpenseResponse updateExpense(
+            @PathVariable Long id,
+            @Valid @RequestBody ExpenseRequest expenseRequest) {
 
-        return expenseService.updateExpense(id,expenseRequest).orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND, "Expense not found"));
+        Long userId = getLoggedInUserId();
+
+        return expenseService.updateExpense(id, expenseRequest, userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Expense not found"));
     }
 
 
@@ -111,9 +136,12 @@ public class ExpenseController {
     @DeleteMapping("/deleteExpense/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteExpense(@PathVariable Long id) {
-        if (!expenseService.deleteExpense(id)) {
+
+        Long userId = getLoggedInUserId();
+
+        if (!expenseService.deleteExpense(id, userId)) {
             throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "ID not found"
+                    HttpStatus.NOT_FOUND, "Expense not found"
             );
         }
     }
@@ -128,8 +156,14 @@ public class ExpenseController {
             @ApiResponse(responseCode = "200", description = "Expenses retrieved successfully")
     })
     @GetMapping("/getExpenseByCategory/{category}")
-    public Page<ExpenseResponse> getExpenseByCategory(@PathVariable String category,@PageableDefault(size = 10) Pageable pageable){
-        return expenseService.filterExpensesByCategory(pageable,category);
+    public Page<ExpenseResponse> getExpenseByCategory(
+            @PathVariable String category,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        Long userId = getLoggedInUserId();
+
+        return expenseService.filterExpensesByCategory(
+                userId, pageable, category);
     }
 
 
@@ -143,12 +177,15 @@ public class ExpenseController {
             @ApiResponse(responseCode = "400", description = "Invalid date range or date format")
     })
     @GetMapping("/dateRange")
-    public Page<ExpenseResponse> getExpenseByDateRange(@RequestParam LocalDate startDate,@RequestParam LocalDate endDate,@PageableDefault Pageable pageable){
-     return expenseService.filterByStartDateAndEndDate(pageable,startDate,endDate);
+    public Page<ExpenseResponse> getExpensesByDateRange(
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate,
+            @PageableDefault(size = 10) Pageable pageable) {
 
+        Long userId = getLoggedInUserId();
+
+        return expenseService.filterByStartDateAndEndDate(
+                userId, pageable, startDate, endDate);
     }
-
-
-
 
 }

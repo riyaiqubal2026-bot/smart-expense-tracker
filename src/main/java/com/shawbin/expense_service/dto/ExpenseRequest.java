@@ -27,6 +27,4 @@ public class ExpenseRequest {
 
     @NotNull(message = "Expense Date is Required")
     private LocalDate expenseDate;
-
-
 }

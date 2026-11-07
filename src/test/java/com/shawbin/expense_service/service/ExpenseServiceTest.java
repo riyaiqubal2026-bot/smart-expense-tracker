@@ -1,5 +1,7 @@
+
 package com.shawbin.expense_service.service;
 
+import com.shawbin.expense_service.client.UserServiceClient;
 import com.shawbin.expense_service.dto.ExpenseRequest;
 import com.shawbin.expense_service.dto.ExpenseResponse;
 import com.shawbin.expense_service.entity.Expense;
@@ -32,6 +34,9 @@ public class ExpenseServiceTest {
     @InjectMocks
     private ExpenseService expenseService;
 
+    @Mock
+    private UserServiceClient userServiceClient;
+
     private ExpenseRequest expenseRequest;
     private Expense expense;
 
@@ -44,6 +49,7 @@ public class ExpenseServiceTest {
         expenseRequest.setExpenseDate(LocalDate.of(2026, 10, 26));
 
         expense = new Expense();
+        expense.setUserId(1L);
         expense.setId(1L);
         expense.setTitle("Groceries");
         expense.setAmount(new BigDecimal("45.50"));
@@ -52,10 +58,16 @@ public class ExpenseServiceTest {
     }
 
     @Test
-    public void createExpense_shouldReturnSavedExpense(){
+    public void createExpense_shouldReturnSavedExpense() {
 
-        when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
-        ExpenseResponse response=expenseService.createExpense(expenseRequest);
+        doNothing().when(userServiceClient).validateUser(1L);
+
+        when(expenseRepository.save(any(Expense.class)))
+                .thenReturn(expense);
+
+        ExpenseResponse response =
+                expenseService.createExpense(expenseRequest, 1L);
+
         assertNotNull(response);
         assertEquals(1L, response.getId());
         assertEquals("Groceries", response.getTitle());
@@ -63,113 +75,135 @@ public class ExpenseServiceTest {
         assertEquals("Food", response.getCategory());
         assertEquals(LocalDate.of(2026, 10, 26), response.getExpenseDate());
 
+        verify(userServiceClient).validateUser(1L);
         verify(expenseRepository).save(any(Expense.class));
-
     }
 
     @Test
-    public void fetchAllExpenses_shouldReturnAllExpenses(){
-        Pageable pageable = PageRequest.of(0,10);
-        Page<Expense> expensePage =
-                new PageImpl<>(List.of(expense), pageable, List.of(expense).size());
+    public void fetchAllExpenses_shouldReturnAllExpenses() {
 
-        when(expenseRepository.findAll(any(Pageable.class)))
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<Expense> expensePage =
+                new PageImpl<>(List.of(expense), pageable, 1);
+
+        when(expenseRepository.findByUserId(1L, pageable))
                 .thenReturn(expensePage);
 
+        Page<ExpenseResponse> result =
+                expenseService.getAllExpenses(1L, pageable);
 
-        Page<ExpenseResponse> result=expenseService.getAllExpenses(pageable);
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         assertEquals("Groceries", result.getContent().get(0).getTitle());
-        verify(expenseRepository).findAll(pageable);
+
+        verify(expenseRepository).findByUserId(1L, pageable);
     }
 
     @Test
-    public void getExpenseById_whenFound_shouldReturnExpense(){
-        when(expenseRepository.findById(1L)).thenReturn(Optional.of(expense));
+    public void getExpenseById_whenFound_shouldReturnExpense() {
 
-        Optional<ExpenseResponse> response= expenseService.getExpenseById(1L);
+        when(expenseRepository.findByIdAndUserId(1L, 1L))
+                .thenReturn(Optional.of(expense));
+
+        Optional<ExpenseResponse> response =
+                expenseService.getExpenseById(1L, 1L);
+
         assertNotNull(response);
         assertTrue(response.isPresent());
         assertEquals("Groceries", response.get().getTitle());
-        verify(expenseRepository).findById(1L);
+
+        verify(expenseRepository).findByIdAndUserId(1L, 1L);
     }
 
     @Test
-    public void getExpenseById_whenNotFound_shouldReturnEmpty(){
-        when(expenseRepository.findById(99L)).thenReturn(Optional.empty());
-        Optional<ExpenseResponse> result=expenseService.getExpenseById(99L);
-        assertTrue(result.isEmpty());
-    }
+    public void getExpenseById_whenNotFound_shouldReturnEmpty() {
 
+        when(expenseRepository.findByIdAndUserId(99L, 1L))
+                .thenReturn(Optional.empty());
+
+        Optional<ExpenseResponse> result =
+                expenseService.getExpenseById(99L, 1L);
+
+        assertTrue(result.isEmpty());
+
+        verify(expenseRepository).findByIdAndUserId(99L, 1L);
+    }
 
     @Test
     public void updateExpense_whenFound_shouldUpdateAndReturnExpense() {
+
         ExpenseRequest updatedExpense = new ExpenseRequest();
         updatedExpense.setTitle("Updated Groceries");
-        updatedExpense.setAmount(new java.math.BigDecimal("45.50"));
+        updatedExpense.setAmount(new BigDecimal("45.50"));
         updatedExpense.setCategory("Food");
-        updatedExpense.setExpenseDate(
-                java.time.LocalDate.of(2026, 10, 26)
-        );
+        updatedExpense.setExpenseDate(LocalDate.of(2026, 10, 26));
 
-        when(expenseRepository.findById(1L))
+        when(expenseRepository.findByIdAndUserId(1L, 1L))
                 .thenReturn(Optional.of(expense));
+
         when(expenseRepository.save(expense))
                 .thenReturn(expense);
 
         Optional<ExpenseResponse> result =
-                expenseService.updateExpense(1L, updatedExpense);
+                expenseService.updateExpense(1L, updatedExpense, 1L);
 
         assertTrue(result.isPresent());
         assertEquals("Updated Groceries", result.get().getTitle());
-        assertEquals(
-                new java.math.BigDecimal("45.50"),
-                result.get().getAmount()
-        );
+        assertEquals(new BigDecimal("45.50"), result.get().getAmount());
         assertEquals("Food", result.get().getCategory());
         assertEquals(
-                java.time.LocalDate.of(2026, 10, 26),
+                LocalDate.of(2026, 10, 26),
                 result.get().getExpenseDate()
         );
 
-        verify(expenseRepository).findById(1L);
+        verify(expenseRepository).findByIdAndUserId(1L, 1L);
         verify(expenseRepository).save(expense);
     }
 
     @Test
     public void updateExpense_whenNotFound_shouldReturnEmpty() {
+
         ExpenseRequest updatedExpense = new ExpenseRequest();
         updatedExpense.setTitle("Updated Groceries");
 
-        when(expenseRepository.findById(99L))
+        when(expenseRepository.findByIdAndUserId(99L, 1L))
                 .thenReturn(Optional.empty());
 
         Optional<ExpenseResponse> result =
-                expenseService.updateExpense(99L, updatedExpense);
+                expenseService.updateExpense(99L, updatedExpense, 1L);
 
         assertTrue(result.isEmpty());
+
+        verify(expenseRepository).findByIdAndUserId(99L, 1L);
         verify(expenseRepository, never()).save(any(Expense.class));
     }
 
     @Test
     public void deleteExpense_whenFound_shouldDeleteAndReturnTrue() {
-        when(expenseRepository.existsById(1L)).thenReturn(true);
 
-        Boolean result = expenseService.deleteExpense(1L);
+        when(expenseRepository.findByIdAndUserId(1L, 1L))
+                .thenReturn(Optional.of(expense));
+
+        Boolean result = expenseService.deleteExpense(1L, 1L);
 
         assertTrue(result);
-        verify(expenseRepository).deleteById(1L);
+
+        verify(expenseRepository).findByIdAndUserId(1L, 1L);
+        verify(expenseRepository).delete(expense);
     }
 
     @Test
     public void deleteExpense_whenNotFound_shouldReturnFalse() {
-        when(expenseRepository.existsById(99L)).thenReturn(false);
 
-        Boolean result = expenseService.deleteExpense(99L);
+        when(expenseRepository.findByIdAndUserId(99L, 1L))
+                .thenReturn(Optional.empty());
+
+        Boolean result = expenseService.deleteExpense(99L, 1L);
 
         assertFalse(result);
-        verify(expenseRepository, never()).deleteById(anyLong());
-    }
 
+        verify(expenseRepository).findByIdAndUserId(99L, 1L);
+        verify(expenseRepository, never()).delete(any(Expense.class));
+    }
 }

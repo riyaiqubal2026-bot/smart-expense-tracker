@@ -14,6 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ExpenseResponse {
     private Long id;
+    private Long userId;
     private String title;
     private String category;
     private BigDecimal amount;

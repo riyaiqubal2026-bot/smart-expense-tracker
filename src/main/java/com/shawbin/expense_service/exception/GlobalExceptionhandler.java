@@ -66,4 +66,30 @@ public class GlobalExceptionhandler {
     }
 
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleUserNotFound(
+            UserNotFoundException ex) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("status", HttpStatus.NOT_FOUND.value());
+        response.put("error", "Not Found");
+        response.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(response);
+    }
+
+    @ExceptionHandler(UserServiceUnavailableException.class)
+    public ResponseEntity<Map<String,Object>> handleUserServiceUnavailable(UserServiceUnavailableException ex){
+        Map<String,Object> response = new LinkedHashMap<>();
+        response.put("status",HttpStatus.SERVICE_UNAVAILABLE.value());
+        response.put("error","Service Unavailable");
+        response.put("message",ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(response);
+    }
+
+
+
 }
