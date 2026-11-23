@@ -1,7 +1,6 @@
 
 package com.shawbin.expense_service.service;
 
-import com.shawbin.expense_service.client.UserServiceClient;
 import com.shawbin.expense_service.dto.ExpenseRequest;
 import com.shawbin.expense_service.dto.ExpenseResponse;
 import com.shawbin.expense_service.entity.Expense;
@@ -34,9 +33,6 @@ public class ExpenseServiceTest {
     @InjectMocks
     private ExpenseService expenseService;
 
-    @Mock
-    private UserServiceClient userServiceClient;
-
     private ExpenseRequest expenseRequest;
     private Expense expense;
 
@@ -60,8 +56,6 @@ public class ExpenseServiceTest {
     @Test
     public void createExpense_shouldReturnSavedExpense() {
 
-        doNothing().when(userServiceClient).validateUser(1L);
-
         when(expenseRepository.save(any(Expense.class)))
                 .thenReturn(expense);
 
@@ -75,7 +69,6 @@ public class ExpenseServiceTest {
         assertEquals("Food", response.getCategory());
         assertEquals(LocalDate.of(2026, 10, 26), response.getExpenseDate());
 
-        verify(userServiceClient).validateUser(1L);
         verify(expenseRepository).save(any(Expense.class));
     }
 

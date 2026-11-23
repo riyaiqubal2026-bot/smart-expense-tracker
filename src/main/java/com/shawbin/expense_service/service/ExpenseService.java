@@ -1,6 +1,7 @@
 package com.shawbin.expense_service.service;
 
 import com.shawbin.expense_service.client.UserServiceClient;
+import com.shawbin.expense_service.dto.CategorySummaryResponse;
 import com.shawbin.expense_service.dto.ExpenseRequest;
 import com.shawbin.expense_service.dto.ExpenseResponse;
 import com.shawbin.expense_service.entity.Expense;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -19,15 +21,16 @@ import java.util.Optional;
 public class ExpenseService {
 
     public final ExpenseRepository expenseRepository;
-    public final UserServiceClient userServiceClient;
+//    public final UserServiceClient userServiceClient;
 
-    public ExpenseService(ExpenseRepository expenseRepository,UserServiceClient userServiceClient) {
+    public ExpenseService(ExpenseRepository expenseRepository) {
         this.expenseRepository = expenseRepository;
-        this.userServiceClient=userServiceClient;
+//        this.userServiceClient=userServiceClient;
     }
 
-    public ExpenseResponse createExpense(ExpenseRequest expenseRequest, Long userId) {
-        userServiceClient.validateUser(userId);
+    public ExpenseResponse createExpense(
+            ExpenseRequest expenseRequest,
+            Long userId) {
 
         Expense expenseEntity = ExpenseMapper.toEntity(expenseRequest);
         expenseEntity.setUserId(userId);
@@ -89,6 +92,64 @@ public class ExpenseService {
                 .findByUserIdAndExpenseDateBetween(
                         userId, startDate, endDate, pageable)
                 .map(ExpenseMapper::toResponse);
+    }
+
+    public BigDecimal getTotalExpenses(Long userId) {
+        return expenseRepository.calculateTotalExpensesByUserId(userId);
+    }
+
+    public BigDecimal getMonthlyExpense(Long userId,LocalDate startDate, LocalDate endDate){
+        return expenseRepository.calculateMonthlyExpenses(userId,startDate,endDate);
+    }
+
+    public Long getTotalTransactions(Long userId){
+        return expenseRepository.countByUserId(userId);
+    }
+
+    public String getHighestSpendingCategory(Long userId) {
+        List<String> categories =
+                expenseRepository.findHighestSpendingCategory(userId);
+
+        return categories.isEmpty() ? "N/A" : categories.get(0);
+    }
+
+    public List<Object[]> getMonthlySpending(Long userId, int year) {
+        return expenseRepository.findMonthlySpending(userId, year);
+    }
+
+    public Page<ExpenseResponse> searchExpenses(
+            Long userId,
+            String title,
+            String category,
+            LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable) {
+
+        return expenseRepository.searchExpenses(
+                userId,
+                title,
+                category,
+                startDate,
+                endDate,
+                pageable
+        ).map(ExpenseMapper::toResponse);
+    }
+
+
+    public List<CategorySummaryResponse> getCategorySummary(
+            Long userId, LocalDate startDate, LocalDate endDate) {
+
+        List<Object[]> results = expenseRepository.findCategorySummary(
+                userId, startDate, endDate);
+
+        return results.stream()
+                .map(row -> new CategorySummaryResponse(
+                        (String) row[0],
+                        (BigDecimal) row[1],
+                        ((Number) row[2]).longValue(),
+                        BigDecimal.valueOf(((Number) row[3]).doubleValue())
+                ))
+                .toList();
     }
 
 }
