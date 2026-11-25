@@ -3,6 +3,7 @@ package com.shawbin.expense_service.client;
 import com.shawbin.expense_service.exception.UserNotFoundException;
 import com.shawbin.expense_service.exception.UserServiceUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,14 +18,22 @@ public class UserServiceClient {
     private final RestClient restClient;
     private final HttpServletRequest request;
 
+    @Autowired
     public UserServiceClient(
             @Value("${user.service.url:http://localhost:8082}") String userServiceUrl,
             HttpServletRequest request) {
 
-        this.restClient = RestClient.builder()
-                .baseUrl(userServiceUrl)
-                .build();
+        this(
+                RestClient.builder()
+                        .baseUrl(userServiceUrl)
+                        .build(),
+                request
+        );
+    }
 
+    // Used by tests to provide a controlled RestClient
+    UserServiceClient(RestClient restClient, HttpServletRequest request) {
+        this.restClient = restClient;
         this.request = request;
     }
 

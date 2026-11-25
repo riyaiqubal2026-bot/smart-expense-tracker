@@ -8,14 +8,18 @@ import com.shawbin.expense_service.entity.Expense;
 import com.shawbin.expense_service.exception.UserNotFoundException;
 import com.shawbin.expense_service.mapper.ExpenseMapper;
 import com.shawbin.expense_service.repository.ExpenseRepository;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
+
 
 @Service
 public class ExpenseService {
@@ -117,6 +121,7 @@ public class ExpenseService {
         return expenseRepository.findMonthlySpending(userId, year);
     }
 
+
     public Page<ExpenseResponse> searchExpenses(
             Long userId,
             String title,
@@ -125,15 +130,64 @@ public class ExpenseService {
             LocalDate endDate,
             Pageable pageable) {
 
-        return expenseRepository.searchExpenses(
-                userId,
-                title,
-                category,
-                startDate,
-                endDate,
-                pageable
-        ).map(ExpenseMapper::toResponse);
+        Specification<Expense> specification = (root, query, criteriaBuilder) -> {
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Always filter by logged-in user
+            predicates.add(
+                    criteriaBuilder.equal(root.get("userId"), userId)
+            );
+
+            // Title filter
+            if (title != null && !title.trim().isEmpty()) {
+                predicates.add(
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("title")),
+                                "%" + title.trim().toLowerCase() + "%"
+                        )
+                );
+            }
+
+            // Category filter
+            if (category != null && !category.trim().isEmpty()) {
+                predicates.add(
+                        criteriaBuilder.equal(
+                                criteriaBuilder.lower(root.get("category")),
+                                category.trim().toLowerCase()
+                        )
+                );
+            }
+
+            // Start date filter
+            if (startDate != null) {
+                predicates.add(
+                        criteriaBuilder.greaterThanOrEqualTo(
+                                root.get("expenseDate"),
+                                startDate
+                        )
+                );
+            }
+
+            // End date filter
+            if (endDate != null) {
+                predicates.add(
+                        criteriaBuilder.lessThanOrEqualTo(
+                                root.get("expenseDate"),
+                                endDate
+                        )
+                );
+            }
+
+            return criteriaBuilder.and(
+                    predicates.toArray(new Predicate[0])
+            );
+        };
+
+        return expenseRepository.findAll(specification, pageable)
+                .map(ExpenseMapper::toResponse);
     }
+
 
 
     public List<CategorySummaryResponse> getCategorySummary(

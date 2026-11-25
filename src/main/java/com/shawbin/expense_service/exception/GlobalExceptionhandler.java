@@ -5,10 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
-
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,21 @@ public class GlobalExceptionhandler {
 
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Invalid Request Parameter");
+        response.put("message",
+                "Invalid value provided for parameter: " + ex.getName());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String,Object>> handleUnexpectedExceptions(Exception ex){
         logger.error("An unexpected error occurred", ex);
@@ -90,6 +106,18 @@ public class GlobalExceptionhandler {
                 .body(response);
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingParameter(
+            MissingServletRequestParameterException ex) {
 
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Missing Request Parameter");
+        response.put("message",
+                "Required parameter is missing: " + ex.getParameterName());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 
 }
